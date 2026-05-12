@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Browse Like a Billionaire Options</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main>
+      <h1>Browse Like a Billionaire</h1>
+      <fieldset>
+        <legend>Ruby currency</legend>
+        <label>
+          <span>Display as</span>
+          <select id="displayCurrency" name="displayCurrency">
+            <option value="zwd">Original Zimbabwe dollar (Z$)</option>
+            <option value="usd">US dollar ($)</option>
+            <option value="eur">Euro (€)</option>
+            <option value="gbp">Pound sterling (£)</option>
+            <option value="jpy">Japanese yen (¥)</option>
+            <option value="cny">Chinese yuan (CN¥)</option>
+            <option value="cad">Canadian dollar (CA$)</option>
+            <option value="aud">Australian dollar (A$)</option>
+            <option value="chf">Swiss franc (CHF)</option>
+            <option value="nzd">New Zealand dollar (NZ$)</option>
+            <option value="hkd">Hong Kong dollar (HK$)</option>
+            <option value="sgd">Singapore dollar (S$)</option>
+            <option value="twd">Taiwan dollar (NT$)</option>
+            <option value="inr">Indian rupee (₹)</option>
+            <option value="krw">South Korean won (₩)</option>
+            <option value="brl">Brazilian real (R$)</option>
+            <option value="mxn">Mexican peso (Mex$)</option>
+            <option value="zar">South African rand (R)</option>
+            <option value="sek">Swedish krona (kr)</option>
+            <option value="nok">Norwegian krone (kr)</option>
+            <option value="dkk">Danish krone (kr)</option>
+            <option value="pln">Polish złoty (zł)</option>
+            <option value="try">Turkish lira (₺)</option>
+            <option value="uah">Ukrainian hryvnia (₴)</option>
+            <option value="thb">Thai baht (฿)</option>
+            <option value="vnd">Vietnamese đồng (₫)</option>
+            <option value="ils">Israeli shekel (₪)</option>
+            <option value="aed">UAE dirham (AED)</option>
+            <option value="sar">Saudi riyal (SAR)</option>
+            <option value="btc">Bitcoin (BTC)</option>
+          </select>
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Number format</legend>
+        <p id="numberFormatHint">Available when the display currency is above 1:1,000,000 per USD.</p>
+        <label>
+          <input type="radio" name="displayNotation" value="scientific">
+          <span>Scientific notation</span>
+          <small>Z$3.5x10⁴¹</small>
+        </label>
+        <label>
+          <input type="radio" name="displayNotation" value="plain">
+          <span>Plain decimal</span>
+          <small>Z$350,000,000,000,000,000,000,000,000,000,000,000,000,000</small>
+        </label>
+      </fieldset>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "browse-like-a-billionaire",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension that annotates currency-like text with original Zimbabwe ZWD values.",
+  "scripts": {
+    "refresh-rates": "node scripts/refresh-rates.mjs",
+    "test": "node test/converter.test.mjs"
+  },
+  "dependencies": {
+    "@fawazahmed0/currency-api": "^2026.5.12"
+  }
+}
