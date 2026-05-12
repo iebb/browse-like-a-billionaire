@@ -782,7 +782,7 @@
   const CODE_ALT = regexAlternation(CURRENCY_CODES);
   const CURRENCY_CODE_SET = new Set(CURRENCY_CODES.map((code) => code.toLowerCase()));
   const LEFT_BOUNDARY = String.raw`(?<![\p{L}\p{N}_])`;
-  const RIGHT_BOUNDARY = String.raw`(?![\p{L}\p{N}_])`;
+  const RIGHT_BOUNDARY = String.raw`(?![A-Za-z0-9_])`;
 
   const MATCHERS = [
     {
