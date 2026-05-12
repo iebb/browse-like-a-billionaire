@@ -86,6 +86,7 @@ assert.equal(api.findCurrencyMatches("GBP 1", rates, { displayCurrency: "gip" })
 
 assert.equal(api.findCurrencyMatches("35,082円", rates)[0].currency, "jpy");
 assert.equal(api.findCurrencyMatches("JPY 100", rates)[0].currency, "jpy");
+assert.equal(api.findCurrencyMatches("₩990,000", rates)[0].amount, 990000);
 assert.equal(api.findCurrencyMatches("100元", rates)[0].currency, "cny");
 assert.equal(api.findCurrencyMatches("100元", rates, { inferredCurrency: "sgd" })[0].currency, "sgd");
 assert.equal(api.findCurrencyMatches("100元", rates, { inferredCurrency: "twd" })[0].currency, "twd");

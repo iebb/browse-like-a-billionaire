@@ -1474,20 +1474,18 @@
 
     for (let index = 0; index < nodes.length - 1; index += 1) {
       const node = nodes[index];
-      const nextNode = nodes[index + 1];
 
-      if (!node.isConnected || !nextNode.isConnected || shouldSkipNode(node) || shouldSkipNode(nextNode)) {
+      if (!node.isConnected || shouldSkipNode(node)) {
         continue;
       }
 
-      const decimalMatch = nextNode.nodeValue.match(/^(\.\d{1,4})/);
-      if (!decimalMatch) {
+      const continuation = collectSplitAmountContinuation(nodes, index + 1);
+      if (!continuation.text) {
         continue;
       }
 
       const firstText = node.nodeValue;
-      const decimalText = decimalMatch[1];
-      const combinedText = `${firstText}${decimalText}`;
+      const combinedText = `${firstText}${continuation.text}`;
       const match = findCurrencyMatches(combinedText, rates, options)
         .find((candidate) => candidate.end === combinedText.length && candidate.start < firstText.length);
 
@@ -1510,6 +1508,38 @@
     }
 
     return count;
+  }
+
+  function collectSplitAmountContinuation(nodes, startIndex) {
+    let text = "";
+    let sawThousandsGroup = false;
+
+    for (let index = startIndex; index < nodes.length && index < startIndex + 4; index += 1) {
+      const node = nodes[index];
+      if (!node || !node.isConnected || shouldSkipNode(node)) {
+        break;
+      }
+
+      const value = node.nodeValue || "";
+      const thousandsMatch = value.match(/^([,\u00a0\s]\d{3})/);
+      if (thousandsMatch) {
+        text += thousandsMatch[1].replace(/\u00a0/g, " ");
+        sawThousandsGroup = true;
+        continue;
+      }
+
+      const decimalMatch = value.match(/^(\.\d{1,4})/);
+      if (decimalMatch) {
+        text += decimalMatch[1];
+      }
+
+      break;
+    }
+
+    return {
+      text,
+      sawThousandsGroup
+    };
   }
 
   function collectTextNodes(root) {
