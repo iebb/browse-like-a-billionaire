@@ -126,5 +126,8 @@ assert.equal(api.inferCurrencyFromToken("United Kingdom"), "gbp");
 assert.equal(api.inferCurrencyFromCctld("shop.example.com.au"), "aud");
 
 assert.equal(api.findCurrencyMatches("Version 1.2.3 and build 5000 are not money.", rates).length, 0);
+assert.equal(api.findCurrencyMatches("$0", rates).length, 0);
+assert.equal(api.findCurrencyMatches("USD 0.00", rates).length, 0);
+assert.equal(api.findCurrencyMatches("0円", rates).length, 0);
 
 console.log("converter tests passed");

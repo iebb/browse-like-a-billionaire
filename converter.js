@@ -1384,7 +1384,7 @@
         const parsed = matcher.read(match, normalizedOptions);
         const amount = parseAmount(parsed.amountText);
 
-        if (amount === null || !parsed.currency) {
+        if (amount === null || amount === 0 || Object.is(amount, -0) || !parsed.currency) {
           continue;
         }
 
