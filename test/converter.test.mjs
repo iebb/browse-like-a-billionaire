@@ -78,8 +78,15 @@ assert.equal(euroOutput.currency, "cad");
 assert.equal(euroOutput.outputCurrency, "eur");
 assert.equal(euroOutput.outputText, "€6.25");
 
-assert.equal(api.findCurrencyMatches("$1", rates, { displayCurrency: "shib", displayNotation: "scientific" })[0].outputText, "SHIB 1x10⁸");
-assert.equal(api.findCurrencyMatches("$1", rates, { displayCurrency: "shib", displayNotation: "plain" })[0].outputText, "SHIB 100,000,000");
+assert.equal(api.findCurrencyMatches("$1", rates, { displayCurrency: "shib", displayNotation: "scientific" })[0].outputText, "100000000 SHIB");
+assert.equal(api.findCurrencyMatches("$1", rates, { displayCurrency: "shib", displayNotation: "plain" })[0].outputText, "100000000 SHIB");
+assert.equal(api.findCurrencyMatches("$123", rates, { displayCurrency: "btc" })[0].outputText, "0.00123 BTC");
+assert.equal(api.findCurrencyMatches("$123", rates, {
+  displayCurrency: "__custom",
+  customCurrencyCode: "xxx",
+  customCurrencyBaseAmount: 100,
+  customCurrencyBaseCurrency: "cny"
+})[0].outputText, "8.61 XXX");
 assert.equal(api.findCurrencyMatches("$1", rates, { displayCurrency: "usd" }).length, 0);
 assert.equal(api.findCurrencyMatches("GIP 1", rates, { displayCurrency: "gbp" }).length, 0);
 assert.equal(api.findCurrencyMatches("GBP 1", rates, { displayCurrency: "gip" }).length, 0);

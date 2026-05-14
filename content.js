@@ -39,7 +39,10 @@
 
     const stored = await chrome.storage.sync.get({
       displayNotation: "scientific",
-      displayCurrency: "zwd"
+      displayCurrency: "zwd",
+      customCurrencyCode: "xxx",
+      customCurrencyBaseAmount: 100,
+      customCurrencyBaseCurrency: "cny"
     });
 
     return api.normalizeOptions({

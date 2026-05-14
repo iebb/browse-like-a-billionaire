@@ -712,6 +712,26 @@
     xof: 0,
     xpf: 0
   };
+  const FIAT_CURRENCY_CODES = new Set([
+    "aed", "afn", "all", "amd", "ang", "aoa", "ars", "ats", "aud", "awg", "azm", "azn",
+    "bam", "bbd", "bdt", "bef", "bgn", "bhd", "bif", "bmd", "bnd", "bob", "brl", "bsd",
+    "btn", "bwp", "byn", "byr", "bzd", "cad", "cdf", "chf", "clp", "cnh", "cny", "cop",
+    "crc", "cuc", "cup", "cve", "cyp", "czk", "dem", "djf", "dkk", "dop", "dzd", "eek",
+    "egp", "ern", "esp", "etb", "eur", "fim", "fjd", "fkp", "frf", "gbp", "gel", "ghs",
+    "gip", "gmd", "gnf", "grd", "gtq", "gyd", "hkd", "hnl", "hrk", "htg", "huf", "idr",
+    "iep", "ils", "imp", "inr", "iqd", "irr", "isk", "itl", "jep", "jmd", "jod", "jpy",
+    "kes", "kgs", "khr", "kmf", "kpw", "krw", "kwd", "kyd", "kzt", "lak", "lbp", "lkr",
+    "lrd", "lsl", "ltl", "luf", "lvl", "lyd", "mad", "mdl", "mga", "mgf", "mkd", "mmk",
+    "mnt", "mop", "mro", "mru", "mtl", "mur", "mvr", "mwk", "mxn", "mxv", "myr", "mzm",
+    "mzn", "nad", "ngn", "nio", "nlg", "nok", "npr", "nzd", "omr", "pab", "pen", "pgk",
+    "php", "pkr", "pln", "pte", "pyg", "qar", "rol", "ron", "rsd", "rub", "rwf", "sar",
+    "sbd", "scr", "sdd", "sdg", "sek", "sgd", "shp", "sit", "skk", "sle", "sll", "sos",
+    "srd", "srg", "ssp", "std", "stn", "svc", "syp", "szl", "thb", "tjs", "tmm", "tmt",
+    "tnd", "top", "trl", "try", "ttd", "tvd", "twd", "tzs", "uah", "ugx", "usd", "uyu",
+    "uzs", "val", "veb", "ved", "vef", "ves", "vnd", "vuv", "wst", "xaf", "xcd", "xcg",
+    "xof", "xpf", "yer", "zar", "zmk", "zmw", "zwd", "zwg", "zwl"
+  ]);
+  const CUSTOM_DISPLAY_CURRENCY = "__custom";
 
   const CURRENCY_CODES = [
     "USD",
@@ -963,12 +983,47 @@
     }
 
     const normalized = value.trim().toLowerCase();
-    return /^[a-z0-9]{3,5}$/.test(normalized) ? normalized : "";
+    return /^[a-z0-9]{2,10}$/.test(normalized) ? normalized : "";
   }
 
   function canonicalCurrencyCode(value) {
     const normalized = normalizeCurrencyCode(value);
     return normalized === "gip" ? "gbp" : normalized;
+  }
+
+  function normalizeCustomCurrencyCode(value) {
+    if (typeof value !== "string") {
+      return "";
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return /^[a-z0-9]{2,10}$/.test(normalized) ? normalized : "";
+  }
+
+  function normalizeCustomCurrency(options) {
+    if (options && options.customCurrency && options.customCurrency.isValid) {
+      return options.customCurrency;
+    }
+
+    const code = normalizeCustomCurrencyCode(options && options.customCurrencyCode);
+    const baseCurrency = canonicalCurrencyCode(options && options.customCurrencyBaseCurrency);
+    const baseAmount = Number(options && options.customCurrencyBaseAmount);
+
+    if (!code || !baseCurrency || !Number.isFinite(baseAmount) || baseAmount <= 0) {
+      return {
+        isValid: false,
+        code: "",
+        baseCurrency: "",
+        baseAmount: 0
+      };
+    }
+
+    return {
+      isValid: true,
+      code,
+      baseCurrency,
+      baseAmount
+    };
   }
 
   function parseAmount(amountText) {
@@ -1009,12 +1064,20 @@
     return amount / perUsd * ZWD_PER_USD;
   }
 
-  function convertCurrency(amount, sourceCurrency, targetCurrency, rates) {
+  function convertCurrency(amount, sourceCurrency, targetCurrency, rates, options) {
     const source = canonicalCurrencyCode(sourceCurrency);
-    const target = canonicalCurrencyCode(targetCurrency);
+    const customCurrency = normalizeCustomCurrency(options);
+    const target = customCurrency.isValid && normalizeCustomCurrencyCode(targetCurrency) === customCurrency.code
+      ? customCurrency.code
+      : canonicalCurrencyCode(targetCurrency);
 
     if (!source || !target) {
       return null;
+    }
+
+    if (customCurrency.isValid && target === customCurrency.code) {
+      const baseValue = convertCurrency(amount, source, customCurrency.baseCurrency, rates);
+      return baseValue === null ? null : baseValue / customCurrency.baseAmount;
     }
 
     if (target === "zwd") {
@@ -1036,15 +1099,22 @@
 
   function normalizeOptions(options) {
     const displayNotation = typeof options === "string" ? options : options && options.displayNotation;
-    const configuredCurrency = normalizeCurrencyCode(options && options.displayCurrency);
+    const rawDisplayCurrency = typeof options?.displayCurrency === "string" ? options.displayCurrency.trim().toLowerCase() : "";
+    const customCurrency = normalizeCustomCurrency(options);
+    const configuredCurrency = rawDisplayCurrency === CUSTOM_DISPLAY_CURRENCY
+      ? customCurrency.code
+      : normalizeCurrencyCode(rawDisplayCurrency);
     const inferredCurrency = normalizeCurrencyCode(options && options.inferredCurrency);
     return {
-      displayCurrency: configuredCurrency || "zwd",
+      customCurrency,
+      displayCurrency: rawDisplayCurrency === CUSTOM_DISPLAY_CURRENCY ? CUSTOM_DISPLAY_CURRENCY : configuredCurrency || "zwd",
       displayNotation: displayNotation === "plain" ? "plain" : "scientific",
       inferredCurrency,
       allowLargeNumberFormat: options && options.allowLargeNumberFormat === true,
       renderingLocale: normalizeRenderingLocale(options && options.renderingLocale),
-      resolvedDisplayCurrency: configuredCurrency === "page" ? inferredCurrency || "zwd" : configuredCurrency || "zwd"
+      resolvedDisplayCurrency: rawDisplayCurrency === CUSTOM_DISPLAY_CURRENCY
+        ? customCurrency.code || "zwd"
+        : configuredCurrency === "page" ? inferredCurrency || "zwd" : configuredCurrency || "zwd"
     };
   }
 
@@ -1085,6 +1155,20 @@
     return CURRENCY_FRACTION_DIGITS[normalizedCurrency] ?? 2;
   }
 
+  function isFiatCurrency(currency, options) {
+    const normalizedOptions = options && options.customCurrency ? options : normalizeOptions(options);
+    const customCurrency = normalizedOptions.customCurrency;
+    const normalizedCurrency = customCurrency.isValid && normalizeCustomCurrencyCode(currency) === customCurrency.code
+      ? customCurrency.code
+      : canonicalCurrencyCode(currency);
+
+    if (customCurrency.isValid && normalizedCurrency === customCurrency.code) {
+      return false;
+    }
+
+    return FIAT_CURRENCY_CODES.has(normalizedCurrency);
+  }
+
   function getDecimalSeparator(locale) {
     const parts = getIntlFormatter(locale, {
       useGrouping: true,
@@ -1119,18 +1203,25 @@
   }
 
   function formatCurrency(value, currency, options) {
-    const normalizedCurrency = canonicalCurrencyCode(currency) || "zwd";
+    const normalizedOptions = normalizeOptions(options);
+    const customCurrency = normalizedOptions.customCurrency;
+    const normalizedCurrency = customCurrency.isValid && normalizeCustomCurrencyCode(currency) === customCurrency.code
+      ? customCurrency.code
+      : canonicalCurrencyCode(currency) || "zwd";
     if (normalizedCurrency === "zwd") {
-      return formatZwd(value, options);
+      return formatZwd(value, normalizedOptions);
     }
 
     if (!Number.isFinite(value)) {
       return null;
     }
 
+    if (!isFiatCurrency(normalizedCurrency, normalizedOptions)) {
+      return `${formatSignificantNumber(value, normalizedOptions)} ${normalizedCurrency.toUpperCase()}`;
+    }
+
     const symbol = CURRENCY_SYMBOLS[normalizedCurrency] || `${normalizedCurrency.toUpperCase()} `;
     const abs = Math.abs(value);
-    const normalizedOptions = normalizeOptions(options);
     const allowLargeNumberFormat = normalizedOptions.allowLargeNumberFormat === true;
     const shouldUseScientific = allowLargeNumberFormat && normalizedOptions.displayNotation === "scientific" && (abs >= LARGE_NUMBER_RATE_THRESHOLD || abs < 0.0001 && abs !== 0);
     const amount = shouldUseScientific ? formatScientific(value) : formatLocaleNumber(value, normalizedOptions, {
@@ -1146,7 +1237,26 @@
       return true;
     }
 
-    return Boolean(rates && rates[normalizedCurrency] > LARGE_NUMBER_RATE_THRESHOLD);
+    return isFiatCurrency(currency) && Boolean(rates && rates[normalizedCurrency] > LARGE_NUMBER_RATE_THRESHOLD);
+  }
+
+  function outputCurrencyPerUsd(currency, rates, options) {
+    const normalizedOptions = options && options.customCurrency ? options : normalizeOptions(options);
+    const customCurrency = normalizedOptions.customCurrency;
+    const normalizedCurrency = customCurrency.isValid && normalizeCustomCurrencyCode(currency) === customCurrency.code
+      ? customCurrency.code
+      : canonicalCurrencyCode(currency);
+
+    if (normalizedCurrency === "zwd") {
+      return ZWD_PER_USD;
+    }
+
+    if (customCurrency.isValid && normalizedCurrency === customCurrency.code) {
+      const baseRate = rates && rates[customCurrency.baseCurrency];
+      return baseRate ? baseRate / customCurrency.baseAmount : null;
+    }
+
+    return rates && rates[normalizedCurrency] || null;
   }
 
   function inferPageCurrency(documentRef, locationRef) {
@@ -1315,6 +1425,51 @@
     return `${trimNumber(mantissa.toPrecision(3))}x10${toSuperscript(exponent)}`;
   }
 
+  function formatSignificantNumber(value, options) {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+
+    if (Object.is(value, -0) || value === 0) {
+      return "0";
+    }
+
+    const significantDigits = Math.max(1, Math.min(10, Number(options && options.significantDigits) || 3));
+    const sign = value < 0 ? "-" : "";
+    return `${sign}${trimSignificantZeros(toPlainNumberString(Math.abs(value).toPrecision(significantDigits)))}`;
+  }
+
+  function toPlainNumberString(value) {
+    const text = String(value);
+    const match = text.match(/^(\d+)(?:\.(\d+))?e([+-]?\d+)$/i);
+    if (!match) {
+      return text;
+    }
+
+    const integerPart = match[1];
+    const fractionPart = match[2] || "";
+    const exponent = Number(match[3]);
+    const digits = `${integerPart}${fractionPart}`;
+    const decimalIndex = integerPart.length + exponent;
+
+    if (decimalIndex <= 0) {
+      return `0.${"0".repeat(Math.abs(decimalIndex))}${digits}`;
+    }
+
+    if (decimalIndex >= digits.length) {
+      return `${digits}${"0".repeat(decimalIndex - digits.length)}`;
+    }
+
+    return `${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`;
+  }
+
+  function trimSignificantZeros(value) {
+    return String(value)
+      .replace(/(\.\d*?[1-9])0+$/, "$1")
+      .replace(/\.0+$/, "")
+      .replace(/\.$/, "");
+  }
+
   function toSuperscript(value) {
     return String(value).replace(/[-+0-9]/g, (character) => SUPERSCRIPT_DIGITS[character] || character);
   }
@@ -1323,6 +1478,15 @@
     return String(value)
       .replace(/(\.\d*?)0+(e|$)/, "$1$2")
       .replace(/\.(e|$)/, "$1");
+  }
+
+  function countSignificantDigits(amountText) {
+    const multiplierMatch = amountText.match(/\s*(trillion|billion|million|bn|[kKmMbB])\s*$/);
+    const numericText = (multiplierMatch ? amountText.slice(0, multiplierMatch.index) : amountText)
+      .replace(/[,\s]/g, "")
+      .replace(/^[+-]/, "");
+    const digits = numericText.replace(".", "").replace(/^0+/, "");
+    return Math.max(1, Math.min(10, digits.length || 1));
   }
 
   function toPlainDecimal(value, options) {
@@ -1383,6 +1547,7 @@
       for (const match of text.matchAll(matcher.re)) {
         const parsed = matcher.read(match, normalizedOptions);
         const amount = parseAmount(parsed.amountText);
+        const significantDigits = countSignificantDigits(parsed.amountText);
 
         if (amount === null || amount === 0 || Object.is(amount, -0) || !parsed.currency) {
           continue;
@@ -1392,8 +1557,11 @@
           continue;
         }
 
-        const outputValue = convertCurrency(amount, parsed.currency, normalizedOptions.resolvedDisplayCurrency, rates);
-        const outputText = outputValue === null ? null : formatCurrency(outputValue, normalizedOptions.resolvedDisplayCurrency, outputOptions);
+        const outputValue = convertCurrency(amount, parsed.currency, normalizedOptions.resolvedDisplayCurrency, rates, normalizedOptions);
+        const outputText = outputValue === null ? null : formatCurrency(outputValue, normalizedOptions.resolvedDisplayCurrency, {
+          ...outputOptions,
+          significantDigits
+        });
 
         if (!outputText) {
           continue;
@@ -1609,6 +1777,7 @@
     convertToZwd,
     convertCurrency,
     findCurrencyMatches,
+    formatSignificantNumber,
     formatZwd,
     formatCurrency,
     inferCurrencyFromCctld,
@@ -1618,6 +1787,7 @@
     normalizeRates,
     normalizeOptions,
     parseAmount,
+    countSignificantDigits,
     toPlainDecimal,
     unwrapAnnotations
   };

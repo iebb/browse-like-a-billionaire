@@ -71,6 +71,30 @@ select {
   font: inherit;
 }
 
+.custom-rate-row {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.7fr) auto minmax(88px, 1fr) minmax(92px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-rate-row input,
+.custom-rate-row select {
+  grid-column: auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px;
+  color: CanvasText;
+  background: Canvas;
+  border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.custom-rate-row span {
+  text-align: center;
+}
+
 span {
   font-size: 14px;
   font-weight: 600;
